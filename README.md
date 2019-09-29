@@ -1,10 +1,10 @@
 # HBDNavigationBar
 
-
+[English Document](./README_EN.md)
 
 UINavigationBar 是每一个 iOS 工程师都会遇到的坎，它令人抓狂的地方在于是否能随着页面切换而平滑地过渡到目的状态。想要把这件事情做好，不需要高深的算法，不需要深刻的底层原理，只需要一颗执着的内心。
 
-##  介绍
+## 介绍
 
 我们来看微信是如何平滑切换导航栏的状态的
 
@@ -24,12 +24,11 @@ UINavigationBar 是每一个 iOS 工程师都会遇到的坎，它令人抓狂�
 
 > 特别说明，本人举掘金这个例子，纯粹是因为掘金是本人常用 app 之一
 
-
 ![juejin](./screenshot/juejin.gif)
 
 导航栏的平滑过渡，可以划分为以下情况
 
-### 阴影隐与现
+### 阴影显示与隐藏
 
 以下展示了平滑切换 shadowImage 的隐与现
 
@@ -41,18 +40,17 @@ UINavigationBar 是每一个 iOS 工程师都会遇到的坎，它令人抓狂�
 
 ![hidden](./screenshot/hidden.gif)
 
-### 导航栏背景透与暗
+### 导航栏背景透明度随 UIScrollView 滚动变化
 
 这种效果是不是比掘金好多了
 
 ![gradient](./screenshot/gradient.gif)
 
-### 导航栏背景不同
+### 控制器拥有不同的导航栏背景
 
 看下面效果，导航栏背景的表现是不是和微信一样
 
 ![background](./screenshot/background.gif)
-
 
 ## Usage
 
@@ -79,33 +77,50 @@ UIViewController(HBD) 是个分类，里面有一些可配置属性
 
 实际使用起来很简单
 
+和使用普通的 `UINavigationBar` 一样，定义全局样式：
+
 ```objc
-// HBDNavigationController 只有在创建 UINavigationController 时使用到
-// HBDNavigationBar 只有在使用 storyboard 时才有机会登场
+// AppDelegate.m
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+
+    [[UINavigationBar appearance] setTintColor:UIColor.blackColor];
+    // ...
+
+    return YES;
+}
+```
+
+使用 `HBDNavigationController` 代替 `UINavigationController`
+
+```objc
 DemoViewController *vc = [[DemoViewController alloc] init];
 self.window.rootViewController = [[HBDNavigationController alloc] initWithRootViewController:vc];
 ```
 
-在 viewDidLoad 中通过分类配置想要的效果即可
+如果某个控制器的导航栏样式和全局样式有差异，可以使用 `UIViewController(HBD)` 中的属性，在 `viewDidLoad` 这个生命周期函数里进行微调。这是声明式 API，只需要设置有差异的样式即可，也不需要清理。
 
 ```objc
 @implementation DemoViewController
 - (void)viewDidLoad {
-[super viewDidLoad];
-// 隐藏导航栏，就这样，不需要调用 setNavigationBarHidden:animated:
-// 也不需要担心其它页面会受到影响
-self.hbd_barHidden = YES; 
+    [super viewDidLoad];
+    // 隐藏导航栏，就这样，不需要调用 setNavigationBarHidden:animated:
+    // 也不需要担心其它页面会受到影响
+    self.hbd_barHidden = YES;
 }
 @end
 ```
 
-如果你使用 storyboard, 除了设置 HBDNavigationController， 也别忘了设置 HBDNavigationBar
+如果你使用 storyboard, 除了设置 `HBDNavigationController`， 也别忘了设置 `HBDNavigationBar`
 
 ![storyboard](./screenshot/storyboard.jpg)
 
 ### 注意事项以及限制
 
+#### hbd_barHidden
+
 `hbd_barHidden` 并不真正隐藏导航栏，只是把它变透明了，当然事件是可以穿透的，也正因为并不真正隐藏导航栏，才可以在导航栏有无之间平滑而优雅地切换
+
+#### Background algorithm
 
 一旦通过 `hbd_barImage` 设置背景图片，`hbd_barTintColor` 就会失效
 
@@ -123,22 +138,9 @@ self.hbd_barHidden = YES;
 
 图片是没有毛玻璃效果的
 
-`isTranslucent` 的值总是 YES，这意味着，controller 的 view 总是位于导航栏底下
+#### Aways translucent
 
-一个比较好的实践是通过 `[UINavigationBar appearance]` 来设置全局样式，然后在每个页面的 `viewDidLoad` 进行微调，如果有必要的话。
-
-```objc
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
-{
-[[UINavigationBar appearance] setBarTintColor:...];
-// ...
-return YES;
-}
-```
-
-#### 处理 isTranslucent 总是 YES 的问题
-
-`isTranslucent` 总是 YES 会导致页面的内容总是位于 NavigationBar 底下，这可能会给某些同学带来困扰。我们目前解决这个问题的办法是定义一个基类：
+NavigationBar 的 `translucent` 属性的值总是 YES，这意味着，controller 的 view 总是位于导航栏底下，这可能会给某些同学带来困扰。我们目前解决这个问题的办法是定义一个基类：
 
 ```objc
 @interface HBDViewController : UIViewController
@@ -163,11 +165,11 @@ BOOL hasAlpha(UIColor *color) {
 
 - (void)viewDidLoad {
     [super viewDidLoad];
- 
+
     if (!(self.hbd_extendedLayoutIncludesTopBar || hasAlpha(self.hbd_barTintColor))) {
         self.edgesForExtendedLayout = UIRectEdgeNone;
     }
-}    
+}
 
 @end
 ```
@@ -189,14 +191,44 @@ BOOL hasAlpha(UIColor *color) {
 
 ```
 
+#### 隐藏状态栏
+
+如果你需要隐藏状态栏，请配合 [HBDStatusBar](https://github.com/listenzz/HBDStatusBar) 一起使用
+
+#### 全屏返回
+
+创建一个继承于 `HBDNavigationController` 的子类，具体参考 FSPNavigationController
+
+```objc
+// FSPNavigationController.m
+@implementation FSPNavigationController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    // 获取系统自带滑动手势的target对象
+    id target = self.interactivePopGestureRecognizer.delegate;
+    // 创建全屏滑动手势，调用系统自带滑动手势的 target 的 action 方法
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:target action:@selector(handleNavigationTransition:)];
+    // 设置手势代理，拦截手势触发
+    pan.delegate = self.interactivePopGestureRecognizer.delegate;
+    // 给导航控制器的view添加全屏滑动手势
+    [self.view addGestureRecognizer:pan];
+    // 禁止使用系统自带的滑动手势
+    self.interactivePopGestureRecognizer.enabled = NO;
+}
+
+@end
+```
+
+
 ## 感谢
 
 在完善导航栏相关功能时，查看了 GitHub 上十多个相关项目，其中给我帮助最大的是 [YPNavigationBarTransition](https://github.com/yiplee/YPNavigationBarTransition)，它为我解决不同背景之间如何平滑切换提供了非常有价值的参考。
 
-
 ## Requirements
 
-iOS 8+
+iOS 9+
 
 ## Installation
 
@@ -204,10 +236,9 @@ HBDNavigationBar is available through [CocoaPods](http://cocoapods.org). To inst
 it, simply add the following line to your Podfile:
 
 ```ruby
-pod 'HBDNavigationBar', '~> 1.4.4'
+pod 'HBDNavigationBar', '~> 1.6.3'
 ```
 
 ## License
 
 HBDNavigationBar is available under the MIT license. See the LICENSE file for more info.
-
